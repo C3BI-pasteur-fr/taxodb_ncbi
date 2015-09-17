@@ -73,12 +73,12 @@ def db_creation( taxodbfh, nodes, taxid, car = 80 ):
     print >>taxodbfh, '//'
     
     
-def table_ceation( osVSocfh, nodes, taxid ):
+def table_ceation( os_vs_oc_fh, nodes, taxid ):
     li, OC = extract_LI_and_OC( nodes, taxid )
     #print 'OS' and 'OC'
     for LOS in nodes[ taxid ]['names'].values():
         for OS in LOS:
-            print >>osVSocfh, '%s\t %s' % (OS, OC)
+            print >>os_vs_oc_fh, '%s\t %s' % (OS, OC)
     
     
 def bdb_creation( os_vs_oc_bdb, nodes, taxid ):
@@ -133,7 +133,7 @@ if __name__=='__main__':
     FLAT = './'
     TABLE = './'
     taxodbfile = FLAT+'taxodb'
-    osVSocfile = TABLE +'taxodb_osVSoc.txt'    #Correspondence between organism and taxonomy. Rapid access.
+    os_vs_oc_file = TABLE +'taxodb_osVSoc.txt'    #Correspondence between organism and taxonomy. Rapid access.
     os_vs_oc_bdb_file = TABLE +'taxodb.bdb'
     
     if not args.databank and not args.tabulated and not args.bdb:
@@ -167,7 +167,7 @@ if __name__=='__main__':
         else:
             # name == {'name class': 'OS'} ex: {'scientific name': 'Theileria parva.'}
             nodes[ fld[0] ]={'id_parent':fld[1], 'rank': fld[2], 'names':{} }
-            if (fld[2] ==  'species' or fld[2] ==  'no rank') and fld[0] != '1':
+            if (fld[2] ==  'species' or fld[2] ==  'no rank' or fld[2] == 'subspecies') and fld[0] != '1':
                 good_tax_ids.append( fld[0] )
         line = args.nodesfh.readline()
     args.nodesfh.close()
@@ -177,7 +177,7 @@ if __name__=='__main__':
     while line:
         fld = line[:-3].split('\t|\t')
         if nodes.has_key( fld[0]):
-            if nodes[ fld[0] ]['names'].has_key( fld[3]):    
+            if nodes[ fld[0] ]['names'].has_key(fld[3]):    
                 nodes[ fld[0] ]['names'][fld[3]].append(fld[1] )# use scientific name if exist
             else:
                 nodes[ fld[0] ]['names'][fld[3]]=[fld[1]]
@@ -185,6 +185,7 @@ if __name__=='__main__':
             print >>sys.stderr, "WARNING: No corresponding tax_id: %s" % fld[0]
         line = args.namesfh.readline()
     args.namesfh.close()
+    
     
     ### Remarks: args.databank and args.tabulated must be dissociated for dbmaint administration 
     
@@ -198,10 +199,10 @@ if __name__=='__main__':
     
     #print 'special table creation' as text
     if args.tabulated:
-        osVSocfh = open (osVSocfile, 'w' )
+        os_vs_oc_fh = open (os_vs_oc_file, 'w' )
         for taxid in good_tax_ids:
-            table_ceation( osVSocfh, nodes, taxid )
-        osVSocfh.close()
+            table_ceation( os_vs_oc_fh, nodes, taxid )
+        os_vs_oc_fh.close()
     
     if args.bdb:
         # Get an instance of BerkeleyDB 
