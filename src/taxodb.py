@@ -13,7 +13,7 @@ from bsddb import db                   # the Berkeley db data base
 
 
 
-def extractLIandOC( nodes, taxid ):
+def extract_LI_and_OC( nodes, taxid ):
     li = '' #list of parent taxid
     oc = ''
     while nodes.has_key( taxid ) and taxid !='1':
@@ -25,12 +25,12 @@ def extractLIandOC( nodes, taxid ):
             taxid = nodes[taxid]['id_parent']
             if taxid != '1':
                 if nodes[taxid]['rank'] != 'no rank':
-                    oc = "%s (%s); %s" %( extractOSname(nodes, taxid), nodes[taxid]['rank'], oc)
+                    oc = "%s (%s); %s" %( extract_OS(nodes, taxid), nodes[taxid]['rank'], oc)
                 else:
-                    oc = "%s; %s" %( extractOSname(nodes, taxid), oc)
+                    oc = "%s; %s" %( extract_OS(nodes, taxid), oc)
     return li, oc
 
-def extractOSname( nodes, taxid ):
+def extract_OS( nodes, taxid ):
     if nodes[ taxid ]['names'].has_key('scientific name'):
         return nodes[ taxid ]['names']['scientific name'][0] # 80 car
     elif nodes[ taxid ]['names'].has_key('equivalent name'):
@@ -44,7 +44,7 @@ def extractOSname( nodes, taxid ):
     else:
         return nodes[ taxid ]['names'].keys()[0][0]
         
-def printLine( outfh, line, tag, car=80 ):
+def print_line( outfh, line, tag, car=80 ):
     i = 0
     while i < len(line):
         st = line[i:i+car-5]
@@ -58,35 +58,35 @@ def printLine( outfh, line, tag, car=80 ):
         i += car -5
                 
 def db_creation( taxodbfh, nodes, taxid, car = 80 ):
-    li, oc = extractLIandOC( nodes, taxid )
+    li, oc = extract_LI_and_OC( nodes, taxid )
     #print 'ID'
     print >>taxodbfh, 'ID   %s;' % taxid
     print >>taxodbfh, 'XX'
     #print 'LI'
-    printLine( taxodbfh, li, 'LI', car )
+    print_line( taxodbfh, li, 'LI', car )
     print >>taxodbfh, 'XX'
     #print 'OS'
-    OS = extractOSname( nodes, taxid )
+    OS = extract_OS( nodes, taxid )
     print >>taxodbfh, 'OS   %s;' % OS
     #print 'OC'
-    printLine( taxodbfh, oc, 'OC', car )
+    print_line( taxodbfh, oc, 'OC', car )
     print >>taxodbfh, '//'
     
     
-def TableCreation( osVSocfh, nodes, taxid ):
-    li, OC = extractLIandOC( nodes, taxid )
+def table_ceation( osVSocfh, nodes, taxid ):
+    li, OC = extract_LI_and_OC( nodes, taxid )
     #print 'OS' and 'OC'
     for LOS in nodes[ taxid ]['names'].values():
         for OS in LOS:
             print >>osVSocfh, '%s\t %s' % (OS, OC)
     
     
-def bdb_creation( osVSocBDB, nodes, taxid ):
-    li, OC = extractLIandOC( nodes, taxid )
+def bdb_creation( os_vs_oc_bdb, nodes, taxid ):
+    li, OC = extract_LI_and_OC( nodes, taxid )
     #print 'OS' and 'OC'
     for LOS in nodes[ taxid ]['names'].values():
         for OS in LOS:
-            osVSocBDB.put(OS,OC)
+            os_vs_oc_bdb.put(OS,OC)
     
     
 if __name__=='__main__':
@@ -134,8 +134,7 @@ if __name__=='__main__':
     TABLE = './'
     taxodbfile = FLAT+'taxodb'
     osVSocfile = TABLE +'taxodb_osVSoc.txt'    #Correspondence between organism and taxonomy. Rapid access.
-    #osVSocBDBfile = TABLE +'taxodb_osVSocBDB'
-    osVSocBDBfile = TABLE +'taxodb.bdb'
+    os_vs_oc_bdb_file = TABLE +'taxodb.bdb'
     
     if not args.databank and not args.tabulated and not args.bdb:
         print parser.format_help()
@@ -201,16 +200,16 @@ if __name__=='__main__':
     if args.tabulated:
         osVSocfh = open (osVSocfile, 'w' )
         for taxid in good_tax_ids:
-            TableCreation( osVSocfh, nodes, taxid )
+            table_ceation( osVSocfh, nodes, taxid )
         osVSocfh.close()
     
     if args.bdb:
         # Get an instance of BerkeleyDB 
-        osVSocBDB = db.DB()
+        os_vs_oc_bdb = db.DB()
         # Create a database in file "osVSocDB" with a Hash access method
         #       There are also, B+tree and Recno access methods
-        osVSocBDB.open(osVSocBDBfile, None, db.DB_HASH, db.DB_CREATE)
+        os_vs_oc_bdb.open(os_vs_oc_bdb_file, None, db.DB_HASH, db.DB_CREATE)
         for taxid in good_tax_ids:
-            bdb_creation( osVSocBDB, nodes, taxid )
+            bdb_creation( os_vs_oc_bdb, nodes, taxid )
         # Close database
-        osVSocBDB.close()
+        os_vs_oc_bdb.close()
