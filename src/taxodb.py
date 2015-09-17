@@ -44,6 +44,7 @@ def extract_OS( nodes, taxid ):
     else:
         return nodes[ taxid ]['names'].keys()[0][0]
         
+
 def print_line( outfh, line, tag, car=80 ):
     i = 0
     while i < len(line):
@@ -57,6 +58,7 @@ def print_line( outfh, line, tag, car=80 ):
             print >>outfh, '%s   %s' % (tag, st.strip())
         i += car -5
                 
+
 def db_creation( taxodbfh, nodes, taxid, car = 80 ):
     li, oc = extract_LI_and_OC( nodes, taxid )
     #print 'ID'
@@ -198,6 +200,7 @@ if __name__=='__main__':
     
     
     #print 'special table creation' as text
+
     if args.tabulated:
         os_vs_oc_fh = open (os_vs_oc_file, 'w' )
         for taxid in good_tax_ids:
