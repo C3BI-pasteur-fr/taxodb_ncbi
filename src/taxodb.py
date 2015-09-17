@@ -1,32 +1,17 @@
 #! /usr/local/bin/python
 
 # Corinne Maufrais
-# Institut Pasteur, Groupe Logisiels et Banques de sonnees
+# Institut Pasteur, DSI/CIB
 # maufrais@pasteur.fr
 #
-# version 1
+# version 2
 
-import os, sys, getopt
+import os, sys
+import argparse
 from bsddb import db                   # the Berkeley db data base
 
-def usage():
-    print """
-usage: taxodb <files>
 
-options:
-   -h          ... Print this message and exit.
-   
-   -k          ... taxoDB databank creation
-   -t          ... special files creation  ( organism versus taxonomy table )
-   -b          ... Berleley db creation ( organism versus taxonomy table )
-   
-   -n <file>   ... Taxonomy names file
-   -d <file>   ... Taxonomy nodes file
-   
 
-description:
-    - Taxonomy NCBI database
-    """
 
 def extractLIandOC( nodes, taxid ):
     li = '' #list of parent taxid
@@ -72,7 +57,7 @@ def printLine( outfh, line, tag, car=80 ):
             print >>outfh, '%s   %s' % (tag, st.strip())
         i += car -5
                 
-def DBcreation( taxodbfh, nodes, taxid, car = 80 ):
+def db_creation( taxodbfh, nodes, taxid, car = 80 ):
     li, oc = extractLIandOC( nodes, taxid )
     #print 'ID'
     print >>taxodbfh, 'ID   %s;' % taxid
@@ -96,7 +81,7 @@ def TableCreation( osVSocfh, nodes, taxid ):
             print >>osVSocfh, '%s\t %s' % (OS, OC)
     
     
-def BDBcreation( osVSocBDB, nodes, taxid ):
+def bdb_creation( osVSocBDB, nodes, taxid ):
     li, OC = extractLIandOC( nodes, taxid )
     #print 'OS' and 'OC'
     for LOS in nodes[ taxid ]['names'].values():
@@ -104,61 +89,63 @@ def BDBcreation( osVSocBDB, nodes, taxid ):
             osVSocBDB.put(OS,OC)
     
     
-    
 if __name__=='__main__':
-    try:
-        opts, args = getopt.gnu_getopt( sys.argv[1:], "hn:d:ktb",["help", "names", "nodes"] )
-    except getopt.GetoptError:
-        usage()
-        sys.exit( 0 )
+    parser = argparse.ArgumentParser(prog='taxodb.py',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                     description="")
+
+    general_options = parser.add_argument_group(title="Options", description=None)
+
+    general_options.add_argument("-n", "--names", dest="namesfh",
+                                 help="names.dmp from NCBI taxonomy databank",
+                                 metavar="file",
+                                 type=file,
+                                 required=True)
+    general_options.add_argument("-d", "--nodes",
+                                 action='store',
+                                 dest='nodesfh',
+                                 metavar="file",
+                                 type=file,
+                                 help='nodes.dmp from NCBI taxonomy databank',
+                                 required=True)
+    general_options.add_argument("-k", "--bank",
+                                 dest="databank",
+                                 help="taxoDB databank output.",
+                                 action='store_true',
+                                 default=False,)
+    general_options.add_argument("-t", "--text",
+                                 dest="tabulated",
+                                 help="text output.",
+                                 action='store_true',
+                                 default=False,)
+    general_options.add_argument("-b", "--bdb",
+                                 dest="bdb",
+                                 help="Berleley db output",
+                                 action='store_true',
+                                 default=False,)
+
+
+    args = parser.parse_args()
+
     
     TAXODB = './'
     #RELEASE = './'
     FLAT = './'
     TABLE = './'
-    #namefile = RELEASE+'names.dmp'
-    #nodefile = RELEASE+'nodes.dmp'
-    namefile = None
-    nodefile = None
     taxodbfile = FLAT+'taxodb'
     osVSocfile = TABLE +'taxodb_osVSoc.txt'    #Correspondence between organism and taxonomy. Rapid access.
     #osVSocBDBfile = TABLE +'taxodb_osVSocBDB'
     osVSocBDBfile = TABLE +'taxodb.bdb'
-    dbcreation = False
-    tablecreation = False 
-    berkeleydb = False
-
-    for o, v in opts: #( opt, value )
-        if o in ( "-h","--help" ):
-            usage()
-            sys.exit( 0 )
-        elif o in ( "-n","--names" ):
-            namefile = v
-        elif o in ( "-d","--nodes" ):
-            nodefile = v
-        elif o in ( "-k","--bank" ):
-            dbcreation = True
-        elif o in ( "-t","--table" ):
-            tablecreation = True
-        elif o in ( "-b","--bdb" ):
-            berkeleydb = True
-        else:
-            usage()
-            sys.exit( 0 )
     
-    if not dbcreation and not tablecreation and not berkeleydb:
-        usage()
-        sys.exit( 0 )
-        
-    if not namefile or not nodefile:
-        usage()
-        sys.exit( 0 )
+    if not args.databank and not args.tabulated and not args.bdb:
+        print parser.format_help()
+        parser.exit()
     
     if not os.access(TAXODB, 0 ):
         os.mkdir( TAXODB )
-    if dbcreation and not os.access(FLAT, 0 ):
+    if args.databank and not os.access(FLAT, 0 ):
         os.mkdir( FLAT )
-    if (tablecreation or berkeleydb) and not os.access(TABLE, 0 ):
+    if (args.tabulated or args.bdb) and not os.access(TABLE, 0 ):
         os.mkdir( TABLE )
     #if not os.access( namefile, 0 ) or not os.access( nodefile, 0 ): #F_OK == 0, X_OK=1, W_OK=2, R_OK=4
     #    sys.exit( 0 )
@@ -170,13 +157,10 @@ if __name__=='__main__':
     #
     ###########
     
-    #print 'nodes.dmp parsing'
     nodes = {}
-    taxidOFinterest = []
-    
-    nodefh = open( nodefile )
-    
-    line = nodefh.readline()
+    good_tax_ids = []
+        
+    line = args.nodesfh.readline()
     while line:
         fld = line[:-1].split('\t|\t')
         if nodes.has_key( fld[0]):
@@ -185,13 +169,12 @@ if __name__=='__main__':
             # name == {'name class': 'OS'} ex: {'scientific name': 'Theileria parva.'}
             nodes[ fld[0] ]={'id_parent':fld[1], 'rank': fld[2], 'names':{} }
             if (fld[2] ==  'species' or fld[2] ==  'no rank') and fld[0] != '1':
-                taxidOFinterest.append( fld[0] )
-        line = nodefh.readline()
-    nodefh.close()
+                good_tax_ids.append( fld[0] )
+        line = args.nodesfh.readline()
+    args.nodesfh.close()
     
     #print 'names.dmp parsing'
-    namefh = open( namefile )
-    line = namefh.readline()
+    line = args.namesfh.readline()
     while line:
         fld = line[:-3].split('\t|\t')
         if nodes.has_key( fld[0]):
@@ -201,33 +184,33 @@ if __name__=='__main__':
                 nodes[ fld[0] ]['names'][fld[3]]=[fld[1]]
         else:
             print >>sys.stderr, "WARNING: No corresponding tax_id: %s" % fld[0]
-        line = namefh.readline()
-    namefh.close()
+        line = args.namesfh.readline()
+    args.namesfh.close()
     
-    ### Remarks: dbcreation and tablecreation must be dissociated for dbmaint administration 
+    ### Remarks: args.databank and args.tabulated must be dissociated for dbmaint administration 
     
-    #print 'databank creation'
-    if dbcreation:
+    # print 'databank creation'
+    if args.databank:
         taxodbfh = open( taxodbfile, 'w' )
-        for taxid in taxidOFinterest:
-            DBcreation( taxodbfh, nodes, taxid )
+        for taxid in good_tax_ids:
+            db_creation( taxodbfh, nodes, taxid )
         taxodbfh.close()
     
     
     #print 'special table creation' as text
-    if tablecreation:
+    if args.tabulated:
         osVSocfh = open (osVSocfile, 'w' )
-        for taxid in taxidOFinterest:
+        for taxid in good_tax_ids:
             TableCreation( osVSocfh, nodes, taxid )
         osVSocfh.close()
     
-    if berkeleydb:
+    if args.bdb:
         # Get an instance of BerkeleyDB 
         osVSocBDB = db.DB()
         # Create a database in file "osVSocDB" with a Hash access method
         #       There are also, B+tree and Recno access methods
         osVSocBDB.open(osVSocBDBfile, None, db.DB_HASH, db.DB_CREATE)
-        for taxid in taxidOFinterest:
-            BDBcreation( osVSocBDB, nodes, taxid )
+        for taxid in good_tax_ids:
+            bdb_creation( osVSocBDB, nodes, taxid )
         # Close database
         osVSocBDB.close()
