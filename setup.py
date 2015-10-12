@@ -9,7 +9,6 @@ setup(name = "taxodb_ncbi",
     url = "",
     package_dir={'': 'src'},
     packages=[''],
-    install_requires = ['golden >= 3.0, 
-	'bsddb3 >=6.1.0', 
+    install_requires = [ 'bsddb3 >=6.1.0', 
 ],
 ) 
