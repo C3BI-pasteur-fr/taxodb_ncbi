@@ -1,4 +1,5 @@
-#! /usr/local/bin/python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # Corinne Maufrais
 # Institut Pasteur, DSI/CIB
