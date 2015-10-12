@@ -1,0 +1,24 @@
+taxodb.py is a simple program that it uses to format the NCBI Taxonomy Database (http://www.ncbi.nlm.nih.gov/taxonomy).  
+It requires the bsddb python library (https://docs.python.org/2/library/bsddb.html) and Berkeley DB library (http://www.oracle.com/database/berkeley-db) to work. 
+
+DATA:
+-----
+taxodb.py uses 'Taxonomy nodes' (nodes.dmp) and 'Taxonomy names' (names.dmp) files provided by The Taxonomy Database of NCBI (http://www.ncbi.nlm.nih.gov/taxonomy)
+ 
+USAGE:
+-------
+Get Taxonomy Database of NCBI: 
+
+  $ wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
+  $ tar zxf taxdump.tar.gz
+
+Get help:
+
+ $ python ./taxodb.py -h
+
+Get text and Berkeley DB database format:
+
+python taxodb.py -n names.dmp -d nodes.dmp -k taxodb.out -t osVSoc.out -b taxodb.bdb
+
+
+
