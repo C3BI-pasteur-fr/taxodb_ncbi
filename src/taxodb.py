@@ -120,7 +120,7 @@ def parse_names(namesfh, nodes):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='taxodb.py',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     description="")
+                                     description="program uses to format the NCBI Taxonomy Database")
 
     general_options = parser.add_argument_group(title="Options", description=None)
 
