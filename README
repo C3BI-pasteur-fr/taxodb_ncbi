@@ -1,4 +1,4 @@
-taxodb.py is a simple program that it uses to format the NCBI Taxonomy Database (http://www.ncbi.nlm.nih.gov/taxonomy).  
+taxodb.py is a simple python program that it uses to format the NCBI Taxonomy Database (http://www.ncbi.nlm.nih.gov/taxonomy).  
 It requires the bsddb python library (https://docs.python.org/2/library/bsddb.html) and Berkeley DB library (http://www.oracle.com/database/berkeley-db) to work. 
 
 DATA:
