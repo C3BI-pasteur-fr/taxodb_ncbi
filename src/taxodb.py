@@ -12,9 +12,9 @@ from bsddb import db                   # the Berkeley db data base
 
 
 def extract_LI_and_OC(nodes, taxid):
-    li = '' # list of parent taxid
+    li = ''  # list of parent taxid
     oc = ''
-    while taxid in nodes and taxid !='1':
+    while taxid in nodes and taxid != '1':
         if nodes[taxid]['id_parent'] != '1':
             li = nodes[taxid]['id_parent'] + '; ' + li
         if nodes[taxid]['id_parent'] == taxid:
@@ -23,85 +23,80 @@ def extract_LI_and_OC(nodes, taxid):
             taxid = nodes[taxid]['id_parent']
             if taxid != '1':
                 if nodes[taxid]['rank'] != 'no rank':
-                    oc = "%s (%s); %s" %(extract_OS(nodes, taxid), nodes[taxid]['rank'], oc)
+                    oc = "%s (%s); %s" % (extract_OS(nodes, taxid), nodes[taxid]['rank'], oc)
                 else:
-                    oc = "%s; %s" %(extract_OS(nodes, taxid), oc)
+                    oc = "%s; %s" % (extract_OS(nodes, taxid), oc)
     return li, oc
 
+
 def extract_OS(nodes, taxid):
-    if nodes[ taxid ]['names'].has_key('scientific name'):
-        return nodes[ taxid ]['names']['scientific name'][0] # 80 car
-    elif nodes[ taxid ]['names'].has_key('equivalent name'):
-        return nodes[ taxid ]['names']['equivalent name'][0]
-    elif nodes[ taxid ]['names'].has_key('synonym'):
-        return nodes[ taxid ]['names']['synonym'][0]
-    elif nodes[ taxid ]['names'].has_key('authority'):
-        return nodes[ taxid ]['names']['authority'][0]
-    elif nodes[ taxid ]['names'].has_key('common name'):
-        return nodes[ taxid ]['names']['common name'][0]
+    if 'scientific name' in nodes[taxid]['names']:
+        return nodes[taxid]['names']['scientific name'][0]  # 80 car
+    elif 'equivalent name' in nodes[taxid]['names']:
+        return nodes[taxid]['names']['equivalent name'][0]
+    elif 'synonym' in nodes[taxid]['names']:
+        return nodes[taxid]['names']['synonym'][0]
+    elif 'authority' in nodes[taxid]['names']:
+        return nodes[taxid]['names']['authority'][0]
+    elif 'common name' in nodes[taxid]['names']:
+        return nodes[taxid]['names']['common name'][0]
     else:
-        return nodes[ taxid ]['names'].keys()[0][0]
-        
+        return nodes[taxid]['names'].keys()[0][0]
+
 
 def print_line(outfh, line, tag, car=80):
     i = 0
     while i < len(line):
         st = line[i:i+car-5]
-        if st[-1] in (';',' ','\n'):
+        if st[-1] in (';', ' ', '\n'):
             print >>outfh, '%s   %s' % (tag, st.strip())
         else:
-            while st[-1] not in (';',' '):
+            while st[-1] not in (';', ' '):
                 st = st[:-1]
-                i -=1
+                i -= 1
             print >>outfh, '%s   %s' % (tag, st.strip())
-        i += car -5
-                
+        i += car - 5
 
-def flat_db_creation(taxodbfh, nodes, taxid, car = 80):
-    li, oc = extract_LI_and_OC(nodes, taxid)
-    #print 'ID'
+
+def flat_db_creation(taxodbfh, nodes, taxid, car=80):
+    li, OC = extract_LI_and_OC(nodes, taxid)
     print >>taxodbfh, 'ID   %s;' % taxid
     print >>taxodbfh, 'XX'
-    #print 'LI'
     print_line(taxodbfh, li, 'LI', car)
     print >>taxodbfh, 'XX'
-    #print 'OS'
     OS = extract_OS(nodes, taxid)
     print >>taxodbfh, 'OS   %s;' % OS
-    #print 'OC'
-    print_line(taxodbfh, oc, 'OC', car)
+    print_line(taxodbfh, OC, 'OC', car)
     print >>taxodbfh, '//'
-    
-    
+
+
 def table_ceation(os_vs_oc_fh, nodes, taxid):
     li, OC = extract_LI_and_OC(nodes, taxid)
-    #print 'OS' and 'OC'
-    for LOS in nodes[ taxid ]['names'].values():
+    for LOS in nodes[taxid]['names'].values():
         for OS in LOS:
             print >>os_vs_oc_fh, '%s\t %s' % (OS, OC)
-    
-    
+
+
 def bdb_creation(os_vs_oc_bdb, nodes, taxid):
     li, OC = extract_LI_and_OC(nodes, taxid)
-    #print 'OS' and 'OC'
-    for LOS in nodes[ taxid ]['names'].values():
+    for LOS in nodes[taxid]['names'].values():
         for OS in LOS:
-            os_vs_oc_bdb.put(OS,OC)
-    
-    
+            os_vs_oc_bdb.put(OS, OC)
+
+
 def parse_nodes(nodesfh):
     nodes = {}
     good_tax_ids = []
-        
+
     line = nodesfh.readline()
     while line:
         fld = line[:-1].split('\t|\t')
-        if nodes.has_key(fld[0]):
+        if fld[0] in nodes:
             print >>sys.stderr, "WARNING: Duplicate tax_id: %s" % fld[0]
         else:
             # name == {'name class': 'OS'} ex: {'scientific name': 'Theileria parva.'}
-            nodes[ fld[0] ]={'id_parent':fld[1], 'rank': fld[2], 'names':{} }
-            if (fld[2] == 'species' or fld[2] ==  'no rank' or fld[2] == 'subspecies') and fld[0] != '1':
+            nodes[fld[0]] = {'id_parent': fld[1], 'rank': fld[2], 'names': {}}
+            if (fld[2] == 'species' or fld[2] == 'no rank' or fld[2] == 'subspecies') and fld[0] != '1':
                 good_tax_ids.append(fld[0])
         line = nodesfh.readline()
     return nodes, good_tax_ids
@@ -111,17 +106,17 @@ def parse_names(namesfh, nodes):
     line = namesfh.readline()
     while line:
         fld = line[:-3].split('\t|\t')
-        if nodes.has_key(fld[0]):
-            if nodes[ fld[0] ]['names'].has_key(fld[3]):
-                nodes[ fld[0] ]['names'][fld[3]].append(fld[1]) # use scientific name if exist
+        if fld[0] in nodes:
+            if fld[3] in nodes[fld[0]]['names']:
+                nodes[fld[0]]['names'][fld[3]].append(fld[1])  # use scientific name if exist
             else:
-                nodes[ fld[0] ]['names'][fld[3]]=[fld[1]]
+                nodes[fld[0]]['names'][fld[3]] = [fld[1]]
         else:
             print >>sys.stderr, "WARNING: No corresponding tax_id: %s" % fld[0]
         line = namesfh.readline()
     return nodes
 
-if __name__=='__main__':
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='taxodb.py',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description="")
@@ -167,7 +162,7 @@ if __name__=='__main__':
     nodes, good_tax_ids = parse_nodes(args.nodesfh)
     nodes = parse_names(args.namesfh, nodes)
 
-    ### Remarks: args.taxodbfh and args.os_vs_oc must be dissociated for dbmaint administration 
+    # ## Remarks: args.taxodbfh and args.os_vs_oc must be dissociated for dbmaint administration
 
     if args.taxodbfh:
         for taxid in good_tax_ids:
@@ -176,9 +171,9 @@ if __name__=='__main__':
     if args.os_vs_oc_fh:
         for taxid in good_tax_ids:
             table_ceation(args.os_vs_oc_fh, nodes, taxid)
-    
+
     if args.os_vs_oc:
-        # Get an instance of BerkeleyDB 
+        # Get an instance of BerkeleyDB
         os_vs_oc_bdb = db.DB()
         # Create a database in file "osVSocDB" with a Hash access method
         #       There are also, B+tree and Recno access methods
