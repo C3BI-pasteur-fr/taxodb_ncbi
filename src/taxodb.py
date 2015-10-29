@@ -9,7 +9,7 @@
 
 import sys
 import argparse
-from bsddb import db                   # the Berkeley db data base
+from bsddb3 import db                   # the Berkeley db data base
 
 
 def extract_LI_and_OC(nodes, taxid):
@@ -141,18 +141,18 @@ if __name__ == '__main__':
                                  help="Output file: flat databank format.",
                                  metavar="File",
                                  type=argparse.FileType('w'),
-                                 default='taxodb')
+                                 ) 
     general_options.add_argument("-t", "--tab",
                                  dest="os_vs_oc_fh",
                                  help="Output file: tabulated format. Organism with classification.",
                                  metavar="File",
                                  type=argparse.FileType('w'),
-                                 default='taxodb_osVSoc.txt',)
+                                 )
     general_options.add_argument("-b", "--bdb",
                                  dest="os_vs_oc",
                                  help="Output file: Berleley db format",
                                  metavar="File",
-                                 default='taxodb.bdb',)
+                                 )
 
     args = parser.parse_args()
 
