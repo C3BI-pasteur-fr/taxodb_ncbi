@@ -18,7 +18,7 @@ Get help:
 
 Get text and Berkeley DB database format:
 
-python taxodb.py -n names.dmp -d nodes.dmp -k taxodb.out -t osVSoc.out -b taxodb.bdb
+python taxodb.py -n names.dmp -d nodes.dmp -k taxodb.out -t osVSoc.out -b ncbi_osVSoc.bdb
 
 
 
