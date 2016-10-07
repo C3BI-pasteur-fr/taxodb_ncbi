@@ -85,7 +85,7 @@ def bdb_creation(os_vs_oc_bdb, nodes, taxid):
             os_vs_oc_bdb.put(OS, OC)
 
 
-def parse_nodes(nodesfh):
+def parse_nodes(nodesfh, format='full'):
     nodes = {}
     good_tax_ids = []
 
@@ -97,8 +97,13 @@ def parse_nodes(nodesfh):
         else:
             # name == {'name class': 'OS'} ex: {'scientific name': 'Theileria parva.'}
             nodes[fld[0]] = {'id_parent': fld[1], 'rank': fld[2], 'names': {}}
-            if (fld[2] == 'species' or fld[2] == 'no rank' or fld[2] == 'subspecies') and fld[0] != '1':
-                good_tax_ids.append(fld[0])
+            if format == 'full':
+                if (fld[2] == 'species' or fld[2] == 'no rank' or fld[2] == 'subspecies') and fld[0] != '1':
+                    good_tax_ids.append(fld[0])
+            else:
+                if fld[0] != '1':
+                    good_tax_ids.append(fld[0])
+            
         line = nodesfh.readline()
     return nodes, good_tax_ids
 
@@ -153,6 +158,16 @@ if __name__ == '__main__':
                                  help="Output file: Berleley db format",
                                  metavar="File",
                                  )
+
+    general_options.add_argument("-f", "--format",
+                                  dest="format",
+                                  help="By default, reports only full taxonomy ie taxonomies that have 'species', 'subspecies' or 'no rank' at the final position. \
+                                  Otherwise, reports all taxonomies even if they are partial",
+                                  metavar="string",
+                                  type=str,
+                                  choices=['full', 'partial'],
+                                  default='full'
+                                  )
 
     args = parser.parse_args()
 
