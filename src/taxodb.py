@@ -175,7 +175,7 @@ if __name__ == '__main__':
     #    format verification: names.dmp and nodes.dmp
     # ##########
 
-    nodes, good_tax_ids = parse_nodes(args.nodesfh)
+    nodes, good_tax_ids = parse_nodes(args.nodesfh, args.format)
     nodes = parse_names(args.namesfh, nodes)
 
     # ## Remarks: args.taxodbfh and args.os_vs_oc must be dissociated for dbmaint administration
