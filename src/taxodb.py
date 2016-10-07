@@ -9,7 +9,7 @@
 
 import sys
 import argparse
-from bsddb3 import db                   # the Berkeley db data base
+from bsddb import db                   # the Berkeley db data base
 
 
 def extract_LI_and_OC(nodes, taxid):
