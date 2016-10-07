@@ -9,7 +9,7 @@
 
 import sys
 import argparse
-from bsddb import db                   # the Berkeley db data base
+from bsddb3 import db                   # the Berkeley db data base
 
 
 def extract_LI_and_OC(nodes, taxid):
@@ -43,6 +43,7 @@ def extract_OS(nodes, taxid):
         return nodes[taxid]['names']['common name'][0]
     else:
         return nodes[taxid]['names'].keys()[0][0]
+
 
 
 def print_line(outfh, line, tag, car=80):
@@ -169,7 +170,13 @@ if __name__ == '__main__':
                                   default='full'
                                   )
 
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
+    except IOError as msg:
+        print >> sys.stderr, "Error: %s" % (msg)
+        sys.exit(1)
+
+        
 
     # ####### TO DO
     #    format verification: names.dmp and nodes.dmp
@@ -193,7 +200,12 @@ if __name__ == '__main__':
         os_vs_oc_bdb = db.DB()
         # Create a database in file "osVSocDB" with a Hash access method
         #       There are also, B+tree and Recno access methods
-        os_vs_oc_bdb.open(args.os_vs_oc, None, db.DB_HASH, db.DB_CREATE)
+        try:
+            os_vs_oc_bdb.open(args.os_vs_oc, None, db.DB_HASH, db.DB_CREATE)
+        except db.DBAccessError as msg:
+            print >> sys.stderr, "Error: %s %s" % (args.os_vs_oc, msg)
+            sys.exit(1)
+            
         for taxid in good_tax_ids:
             bdb_creation(os_vs_oc_bdb, nodes, taxid)
         # Close database
