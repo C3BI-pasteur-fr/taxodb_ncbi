@@ -4,8 +4,7 @@
 # Corinne Maufrais
 # Institut Pasteur, DSI/CIB
 # maufrais@pasteur.fr
-#
-# version 2
+# Updated by Emmanuel Quevillon <tuco@pasteur.fr>
 
 import sys
 import argparse
@@ -29,7 +28,6 @@ def extract_LI_and_OC(nodes, taxid):
                     oc = "%s; %s" % (extract_OS(nodes, taxid), oc)
     return li, oc
 
-
 def extract_OS(nodes, taxid):
     if 'scientific name' in nodes[taxid]['names']:
         return nodes[taxid]['names']['scientific name'][0]  # 80 car
@@ -44,8 +42,6 @@ def extract_OS(nodes, taxid):
     else:
         return nodes[taxid]['names'].keys()[0][0]
 
-
-
 def print_line(outfh, line, tag, car=80):
     i = 0
     while i < len(line):
@@ -59,7 +55,6 @@ def print_line(outfh, line, tag, car=80):
             print >>outfh, '%s   %s' % (tag, st.strip())
         i += car - 5
 
-
 def flat_db_creation(taxodbfh, nodes, taxid, car=80):
     li, OC = extract_LI_and_OC(nodes, taxid)
     print >>taxodbfh, 'ID   %s;' % taxid
@@ -71,20 +66,17 @@ def flat_db_creation(taxodbfh, nodes, taxid, car=80):
     print_line(taxodbfh, OC, 'OC', car)
     print >>taxodbfh, '//'
 
-
-def table_ceation(os_vs_oc_fh, nodes, taxid):
+def table_creation(os_vs_oc_fh, nodes, taxid):
     li, OC = extract_LI_and_OC(nodes, taxid)
     for LOS in nodes[taxid]['names'].values():
         for OS in LOS:
             print >>os_vs_oc_fh, '%s\t %s' % (OS, OC)
-
 
 def bdb_creation(os_vs_oc_bdb, nodes, taxid):
     li, OC = extract_LI_and_OC(nodes, taxid)
     for LOS in nodes[taxid]['names'].values():
         for OS in LOS:
             os_vs_oc_bdb.put(OS, OC)
-
 
 def parse_nodes(nodesfh, format='full'):
     nodes = {}
@@ -108,7 +100,6 @@ def parse_nodes(nodesfh, format='full'):
         line = nodesfh.readline()
     return nodes, good_tax_ids
 
-
 def parse_names(namesfh, nodes):
     line = namesfh.readline()
     while line:
@@ -124,7 +115,7 @@ def parse_names(namesfh, nodes):
     return nodes
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='taxodb.py',
+    parser = argparse.ArgumentParser(prog='taxodb_ncbi.py',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description="program uses to format the NCBI Taxonomy Database")
 
@@ -161,22 +152,22 @@ if __name__ == '__main__':
                                  )
 
     general_options.add_argument("-f", "--format",
-                                  dest="format",
-                                  help="By default, reports only full taxonomy ie taxonomies that have 'species', 'subspecies' or 'no rank' at the final position. \
-                                  Otherwise, reports all taxonomies even if they are partial",
-                                  metavar="string",
-                                  type=str,
-                                  choices=['full', 'partial'],
-                                  default='full'
-                                  )
+                                 dest="format",
+                                 help="""
+                                 By default, reports only full taxonomy ie taxonomies that have 'species',
+                                 'subspecies' or 'no rank' at the final position.
+                                 Otherwise, reports all taxonomies even if they are partial""",
+                                 metavar="string",
+                                 type=str,
+                                 choices=['full', 'partial'],
+                                 default='full'
+                                 )
 
     try:
         args = parser.parse_args()
     except IOError as msg:
-        print >> sys.stderr, "Error: %s" % (msg)
+        print >> sys.stderr, "Error: %s" % msg
         sys.exit(1)
-
-        
 
     # ####### TO DO
     #    format verification: names.dmp and nodes.dmp
@@ -193,7 +184,7 @@ if __name__ == '__main__':
 
     if args.os_vs_oc_fh:
         for taxid in good_tax_ids:
-            table_ceation(args.os_vs_oc_fh, nodes, taxid)
+            table_creation(args.os_vs_oc_fh, nodes, taxid)
 
     if args.os_vs_oc:
         # Get an instance of BerkeleyDB
