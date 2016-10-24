@@ -201,7 +201,7 @@ if __name__ == '__main__':
         # Create a database in file "osVSocDB" with a Hash access method
         #       There are also, B+tree and Recno access methods
         try:
-            os_vs_oc_bdb.open(args.os_vs_oc, None, db.DB_HASH, db.DB_CREATE)
+            os_vs_oc_bdb.open(args.os_vs_oc, None, db.DB_HASH, db.DB_CREATE, mode=0666)
         except db.DBAccessError as msg:
             print >> sys.stderr, "Error: %s %s" % (args.os_vs_oc, msg)
             sys.exit(1)
