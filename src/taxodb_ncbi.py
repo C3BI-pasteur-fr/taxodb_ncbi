@@ -6,9 +6,11 @@
 # maufrais@pasteur.fr
 # Updated by Emmanuel Quevillon <tuco@pasteur.fr>
 
+from __future__ import print_function
 import sys
 import argparse
 from bsddb3 import db                   # the Berkeley db data base
+from time import time
 
 
 def extract_LI_and_OC(nodes, taxid):
@@ -21,12 +23,13 @@ def extract_LI_and_OC(nodes, taxid):
             taxid = '1'
         else:
             taxid = nodes[taxid]['id_parent']
-            if taxid != '1':
+            if taxid != '1' and taxid in nodes:
                 if nodes[taxid]['rank'] != 'no rank':
                     oc = "%s (%s); %s" % (extract_OS(nodes, taxid), nodes[taxid]['rank'], oc)
                 else:
                     oc = "%s; %s" % (extract_OS(nodes, taxid), oc)
     return li, oc
+
 
 def extract_OS(nodes, taxid):
     if 'scientific name' in nodes[taxid]['names']:
@@ -40,37 +43,42 @@ def extract_OS(nodes, taxid):
     elif 'common name' in nodes[taxid]['names']:
         return nodes[taxid]['names']['common name'][0]
     else:
+        print("WARNING: Not in AUTH_OS_NAMES for %s" % taxid)
         return nodes[taxid]['names'].keys()[0][0]
+
 
 def print_line(outfh, line, tag, car=80):
     i = 0
     while i < len(line):
         st = line[i:i+car-5]
         if st[-1] in (';', ' ', '\n'):
-            print >>outfh, '%s   %s' % (tag, st.strip())
+            print('%s   %s' % (tag, st.strip()), file=outfh)
         else:
             while st[-1] not in (';', ' '):
                 st = st[:-1]
                 i -= 1
-            print >>outfh, '%s   %s' % (tag, st.strip())
+            print('%s   %s' % (tag, st.strip()), file=outfh)
         i += car - 5
+
 
 def flat_db_creation(taxodbfh, nodes, taxid, car=80):
     li, OC = extract_LI_and_OC(nodes, taxid)
-    print >>taxodbfh, 'ID   %s;' % taxid
-    print >>taxodbfh, 'XX'
-    print_line(taxodbfh, li, 'LI', car)
-    print >>taxodbfh, 'XX'
+    print('ID   %s;' % taxid, file=taxodbfh)
+    print('XX', file=taxodbfh)
+    print_line(taxodbfh, li, 'LI', car=car)
+    print('XX', file=taxodbfh)
     OS = extract_OS(nodes, taxid)
-    print >>taxodbfh, 'OS   %s;' % OS
-    print_line(taxodbfh, OC, 'OC', car)
-    print >>taxodbfh, '//'
+    print('OS   %s;' % OS, file=taxodbfh)
+    print_line(taxodbfh, OC, 'OC', car=car)
+    print('//', file=taxodbfh)
+
 
 def table_creation(os_vs_oc_fh, nodes, taxid):
     li, OC = extract_LI_and_OC(nodes, taxid)
     for LOS in nodes[taxid]['names'].values():
         for OS in LOS:
-            print >>os_vs_oc_fh, '%s\t %s' % (OS, OC)
+            print('%s\t %s' % (OS, OC), file=os_vs_oc_fh)
+
 
 def bdb_creation(os_vs_oc_bdb, nodes, taxid):
     li, OC = extract_LI_and_OC(nodes, taxid)
@@ -78,7 +86,8 @@ def bdb_creation(os_vs_oc_bdb, nodes, taxid):
         for OS in LOS:
             os_vs_oc_bdb.put(OS, OC)
 
-def parse_nodes(nodesfh, format='full'):
+
+def parse_nodes(nodesfh, fmt='full'):
     nodes = {}
     good_tax_ids = []
 
@@ -86,19 +95,26 @@ def parse_nodes(nodesfh, format='full'):
     while line:
         fld = line[:-1].split('\t|\t')
         if fld[0] in nodes:
-            print >>sys.stderr, "WARNING: Duplicate tax_id: %s" % fld[0]
+            print("WARNING: Duplicate tax_id: %s" % fld[0], file=sys.stderr)
         else:
-            # name == {'name class': 'OS'} ex: {'scientific name': 'Theileria parva.'}
             nodes[fld[0]] = {'id_parent': fld[1], 'rank': fld[2], 'names': {}}
-            if format == 'full':
+            if fmt == 'full':
                 if (fld[2] == 'species' or fld[2] == 'no rank' or fld[2] == 'subspecies') and fld[0] != '1':
                     good_tax_ids.append(fld[0])
             else:
                 if fld[0] != '1':
                     good_tax_ids.append(fld[0])
-            
+            # if fld[0] != '1':
+            #     if fmt == 'full':
+            #         if fld[2] in ['species', 'no rank', 'subspecies']:
+            #             good_tax_ids.append(fld[0])
+            #     else:
+            #         good_tax_ids.append(fld[0])
+
+
         line = nodesfh.readline()
     return nodes, good_tax_ids
+
 
 def parse_names(namesfh, nodes):
     line = namesfh.readline()
@@ -110,9 +126,10 @@ def parse_names(namesfh, nodes):
             else:
                 nodes[fld[0]]['names'][fld[3]] = [fld[1]]
         else:
-            print >>sys.stderr, "WARNING: No corresponding tax_id: %s" % fld[0]
+            print("WARNING: No corresponding tax_id: %s" % fld[0], file=sys.stderr)
         line = namesfh.readline()
     return nodes
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='taxodb_ncbi.py',
@@ -150,7 +167,6 @@ if __name__ == '__main__':
                                  help="Output file: Berleley db format",
                                  metavar="File",
                                  )
-
     general_options.add_argument("-f", "--format",
                                  dest="format",
                                  help="""
@@ -162,21 +178,32 @@ if __name__ == '__main__':
                                  choices=['full', 'partial'],
                                  default='full'
                                  )
+    general_options.add_argument("-v", "--verbose",
+                                 dest="verbose",
+                                 help="Set verbose mode on, default off",
+                                 action="store_true",
+                                 default=False)
 
     try:
         args = parser.parse_args()
     except IOError as msg:
-        print >> sys.stderr, "Error: %s" % msg
+        print("Error: %s" % msg, file=sys.stderr)
         sys.exit(1)
 
     # ####### TO DO
     #    format verification: names.dmp and nodes.dmp
     # ##########
 
-    nodes, good_tax_ids = parse_nodes(args.nodesfh, args.format)
-    nodes = parse_names(args.namesfh, nodes)
-
-    # ## Remarks: args.taxodbfh and args.os_vs_oc must be dissociated for dbmaint administration
+    if args.taxodbfh or args.os_vs_oc_fh or args.os_vs_oc:
+        if args.verbose:
+            print("Parsing nodes.dmp ...")
+        nodes, good_tax_ids = parse_nodes(args.nodesfh, fmt=args.format)
+        if args.verbose:
+            print("Parsing names.dmp ...")
+        nodes = parse_names(args.namesfh, nodes)
+    else:
+        print("Nothing  specified, quit!", file=sys.stderr)
+        sys.exit(1)
 
     if args.taxodbfh:
         for taxid in good_tax_ids:
@@ -194,9 +221,12 @@ if __name__ == '__main__':
         try:
             os_vs_oc_bdb.open(args.os_vs_oc, None, db.DB_HASH, db.DB_CREATE, mode=0666)
         except db.DBAccessError as msg:
-            print >> sys.stderr, "Error: %s %s" % (args.os_vs_oc, msg)
+            print("Error: %s %s" % (args.os_vs_oc, msg), file=sys.stderr)
+            os_vs_oc_bdb.close()
             sys.exit(1)
-            
+
+        if args.verbose:
+            print("Creating Berkeley database ... ")
         for taxid in good_tax_ids:
             bdb_creation(os_vs_oc_bdb, nodes, taxid)
         # Close database
