@@ -12,7 +12,7 @@ if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (sys.version_info[0
 config = {
     'name': 'taxodb_ncbi',
     'author': 'Corinne Maufrais',
-    'version': '1.3.2',
+    'version': '1.3.4',
     'author_email': 'corinne.maufrais@pasteur.fr',
     'url': 'https://github.com/C3BI-pasteur-fr/taxodb_ncbi',
     'download_url': 'https://github.com/C3BI-pasteur-fr/taxodb_ncbi',
